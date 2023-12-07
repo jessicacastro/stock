@@ -24,15 +24,12 @@ func NewBook(orderChan chan *Order, orderChanOut chan *Order, wg *sync.WaitGroup
 }
 
 func (b *Book) Trade() {
-	/** Inicia as duas filas, a de compra e a de venda **/
 	buyOrdersQueue := NewOrderQueue()
 	sellOrdersQueue := NewOrderQueue()
 
-	/** Joga essas filas criadas na memória heap para otimizar o algoritmo **/
 	heap.Init(buyOrdersQueue)
 	heap.Init(sellOrdersQueue)
 
-	/** Loop infinito recebendo uma order do nosso canal de entrada **/
 	for order := range b.OrdersChannel {
 		if order.OrderType == "BUY" {
 			buyOrdersQueue.Push(order)
@@ -76,7 +73,7 @@ func (b *Book) Trade() {
 }
 
 func (b *Book) AddTransaction(transaction *Transaction, wg *sync.WaitGroup) {
-	defer wg.Done() // garante que será rodado somente no final de tudo nessa função
+	defer wg.Done()
 
 	sellingShares := transaction.SellingOrder.PendingShares
 	buyingShares := transaction.BuyingOrder.PendingShares
@@ -87,14 +84,11 @@ func (b *Book) AddTransaction(transaction *Transaction, wg *sync.WaitGroup) {
 		minShares = buyingShares
 	}
 
-	/** Atualiza as ações do investidor que está vendendo, diminuindo sua quantidade **/
 	transaction.SellingOrder.Investor.UpdateAssetPosition(transaction.SellingOrder.Asset.ID, -minShares)
 	transaction.UpdateSellOrderPendingShares(-minShares)
 
-	/** Atualiza as ações do investidor que está comprando, aumentando sua quantidade **/
 	transaction.BuyingOrder.Investor.UpdateAssetPosition(transaction.BuyingOrder.Asset.ID, minShares)
-	transaction.UpdateBuyOrderPendingShares(-minShares) // Nesse caso, diminui, porque ele comprou as shares e requer menor quantidade do total
-
+	transaction.UpdateBuyOrderPendingShares(-minShares)
 	transaction.CalculateTotal(transaction.Shares, transaction.BuyingOrder.Price)
 
 	transaction.CloseBuyOrderTransaction()
